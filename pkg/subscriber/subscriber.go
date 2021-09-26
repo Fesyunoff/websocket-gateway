@@ -13,7 +13,7 @@ import (
 
 type Subscriber interface {
 	Subscribe(w http.ResponseWriter, r *http.Request)
-	Get() map[string]*websocket.Conn
+	Publish(msg []byte) (err error)
 }
 
 var _ Subscriber = (*Gateway)(nil)
@@ -53,7 +53,7 @@ func (g *Gateway) Subscribe(w http.ResponseWriter, r *http.Request) {
 		}
 		if req.Action == "unsubscribe" {
 			resp = "unsubscribed"
-			g.delite(conn_id)
+			g.delete(conn_id)
 		}
 
 		log.Printf("recv: %s, %s", conn_id, string(resp))
@@ -65,10 +65,21 @@ func (g *Gateway) Subscribe(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (g *Gateway) Get() map[string]*websocket.Conn {
+func (g *Gateway) Publish(msg []byte) (err error) {
 	g.mux.Lock()
 	defer g.mux.Unlock()
-	return g.Clients
+	var wg sync.WaitGroup
+	for id, c := range g.Clients {
+		wg.Add(1)
+		id, c := id, c
+		go func() {
+			defer wg.Done()
+			_ = writeMessage(msg, id, c)
+		}()
+
+	}
+	wg.Wait()
+	return
 }
 
 func (g *Gateway) add(id string, c *websocket.Conn) {
@@ -77,10 +88,20 @@ func (g *Gateway) add(id string, c *websocket.Conn) {
 	g.mux.Unlock()
 }
 
-func (g *Gateway) delite(id string) {
+func (g *Gateway) delete(id string) {
 	g.mux.Lock()
 	delete(g.Clients, id)
 	g.mux.Unlock()
+}
+
+func writeMessage(msg []byte, id string, c *websocket.Conn) (err error) {
+	err = c.WriteMessage(websocket.TextMessage, msg)
+	if err != nil {
+		log.Println("write:", err)
+		return
+	}
+	log.Printf("recv to %s: %s", id, string(msg))
+	return
 }
 
 func NewGatewayConfig(host string,

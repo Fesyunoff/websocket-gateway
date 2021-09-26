@@ -84,25 +84,11 @@ func main() {
 	for {
 		select {
 		case <-bitmex.Msgs:
-			for {
-				msg, ok := <-bitmex.Msgs
-				if !ok {
-					break
-				}
-				clients := gateway.Get()
-				for id, c := range clients {
-
-					// go func() {
-					if *debug {
-						log.Printf("recv to %s: %s", id, string(msg))
-					}
-					err = c.WriteMessage(websocket.TextMessage, msg)
-					if err != nil {
-						log.Println("write:", err)
-					}
-					// }()
-				}
+			msg, ok := <-bitmex.Msgs
+			if !ok {
+				break
 			}
+			_ = gateway.Publish(msg)
 		case <-interrupt:
 			log.Println("interrupt")
 
@@ -112,12 +98,7 @@ func main() {
 				log.Println("write close:", err)
 				return
 			}
-			select {
-			case <-bitmex.Msgs:
-			case <-time.After(time.Second):
-			}
 			return
-
 		}
 	}
 

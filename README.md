@@ -1,3 +1,4 @@
+
 ##Websocket API Gateway 
 
 
@@ -40,13 +41,27 @@ JSON: {“action”: “unsubscribe”}
 
 Start:
 
+
 ```buildoutcfg
 $ go build -o ./bin/gateway ./cmd/gateway/main.go
 
+```
+
+or
+
+
+```buildoutcfg
+$ go build -race -o ./bin/gateway ./cmd/gateway/main.go
+
+```
+
+
+```buildoutcfg
 $ ./bin/gateway
 ```
 
 Listen:
+
 
 ```buildoutcfg
 
@@ -54,3 +69,5 @@ $ gws client -url="ws://0.0.0.0:9090/" -verbose
 
 > {"action":"subscribe"}
 ```
+
+
